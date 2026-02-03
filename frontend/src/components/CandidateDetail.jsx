@@ -15,7 +15,7 @@ export default function CandidateDetail() {
   const [error, setError] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // ✅ FIX: wrap in useCallback
+  /* ---------------- LOAD CANDIDATE ---------------- */
   const loadCandidate = useCallback(async () => {
     try {
       const data = await getCandidateById(id);
@@ -27,16 +27,15 @@ export default function CandidateDetail() {
     }
   }, [id]);
 
-  // ✅ FIX: dependency is loadCandidate
   useEffect(() => {
     loadCandidate();
   }, [loadCandidate]);
 
+  /* ---------------- DELETE ---------------- */
   async function handleDelete() {
     if (!window.confirm(`Are you sure you want to delete ${candidate.name}?`)) {
       return;
     }
-
     try {
       await deleteCandidate(id);
       alert("Candidate deleted successfully");
@@ -46,12 +45,12 @@ export default function CandidateDetail() {
     }
   }
 
+  /* ---------------- STATUS UPDATE ---------------- */
   async function handleStatusChange(newStatus) {
     setUpdatingStatus(true);
     try {
       const updated = await updateCandidateStatus(id, newStatus);
       setCandidate(updated);
-      alert("Status updated successfully");
     } catch (err) {
       alert("Failed to update status: " + err.message);
     } finally {
@@ -59,7 +58,8 @@ export default function CandidateDetail() {
     }
   }
 
-  const getScoreColor = (score) => {
+  /* ---------------- HELPERS ---------------- */
+  const getScoreColor = (score = 0) => {
     if (score >= 70) return "#10b981";
     if (score >= 40) return "#f59e0b";
     return "#ef4444";
@@ -75,65 +75,38 @@ export default function CandidateDetail() {
   };
 
   const parseSkills = (feedback) => {
-    if (!feedback)
-      return { strengths: [], weaknesses: [], recommendations: [] };
+    if (!feedback) return { strengths: [], weaknesses: [], recommendations: [] };
 
     const sections = feedback.split("\n\n");
-    const strengthsSection = sections.find((s) =>
-      s.startsWith("STRENGTHS:")
-    );
-    const weaknessesSection = sections.find((s) =>
-      s.startsWith("WEAKNESSES:")
-    );
-    const recommendationsSection = sections.find((s) =>
-      s.startsWith("RECOMMENDATIONS:")
-    );
+    const get = (key) =>
+      sections.find((s) => s.startsWith(key))?.replace(key, "").trim() || "";
 
     return {
-      strengths: strengthsSection
-        ? strengthsSection
-            .replace("STRENGTHS:", "")
-            .split(",")
-            .map((s) => s.trim())
-        : [],
-      weaknesses: weaknessesSection
-        ? weaknessesSection
-            .replace("WEAKNESSES:", "")
-            .split(",")
-            .map((s) => s.trim())
-        : [],
-      recommendations: recommendationsSection
-        ? recommendationsSection
-            .replace("RECOMMENDATIONS:", "")
-            .split("\n")
-            .map((s) => s.replace("-", "").trim())
-        : []
+      strengths: get("STRENGTHS:")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      weaknesses: get("WEAKNESSES:")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      recommendations: get("RECOMMENDATIONS:")
+        .split("\n")
+        .map((s) => s.replace("-", "").trim())
+        .filter(Boolean)
     };
   };
 
+  /* ---------------- STATES ---------------- */
   if (loading) {
-    return (
-      <div className="card">
-        <div className="spinner"></div>
-        <p style={{ textAlign: "center", marginTop: "10px" }}>
-          Loading candidate details...
-        </p>
-      </div>
-    );
+    return <p style={{ textAlign: "center" }}>Loading candidate...</p>;
   }
 
   if (error || !candidate) {
     return (
-      <div className="card">
-        <div className="alert alert-error">
-          ⚠️ {error || "Candidate not found"}
-        </div>
-        <button
-          onClick={() => navigate("/candidates")}
-          className="btn btn-primary"
-        >
-          ← Back to Candidates
-        </button>
+      <div>
+        <p>{error || "Candidate not found"}</p>
+        <button onClick={() => navigate("/candidates")}>Back</button>
       </div>
     );
   }
@@ -142,34 +115,71 @@ export default function CandidateDetail() {
     candidate.feedback
   );
 
+  /* ---------------- UI ---------------- */
   return (
     <div>
-      <h2>👤 {candidate.name}</h2>
-      <p>Email: {candidate.email}</p>
-      <p>Status: {candidate.status}</p>
-
-      <button onClick={handleDelete} className="btn btn-primary">
-        🗑 Delete Candidate
+      <button onClick={() => navigate("/candidates")}>← Back</button>
+      <button onClick={handleDelete} style={{ marginLeft: "10px" }}>
+        Delete
       </button>
 
-      <h3>⭐ Score: {candidate.totalScore}</h3>
+      <h2>{candidate.name}</h2>
+      <p>Email: {candidate.email}</p>
+      <p>Phone: {candidate.phoneNumber || "N/A"}</p>
+      <p>
+        Role:{" "}
+        {candidate.jobRole ? candidate.jobRole.roleName : "Not specified"}
+      </p>
 
-      <h3>📊 Strengths</h3>
-      {strengths.map((s, i) => (
-        <span key={i}>{s}, </span>
-      ))}
+      <p style={{ color: getScoreColor(candidate.totalScore) }}>
+        Score: {candidate.totalScore}
+      </p>
 
-      <h3>❌ Weaknesses</h3>
-      {weaknesses.map((s, i) => (
-        <span key={i}>{s}, </span>
-      ))}
+      {candidate.experienceLevel && (
+        <span
+          style={{
+            background: getExperienceBadge(candidate.experienceLevel).color,
+            color: "white",
+            padding: "5px 10px",
+            borderRadius: "20px"
+          }}
+        >
+          {getExperienceBadge(candidate.experienceLevel).label}
+        </span>
+      )}
 
-      <h3>💡 Recommendations</h3>
-      <ul>
-        {recommendations.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </ul>
+      <h3>Status: {candidate.status}</h3>
+
+      <button
+        disabled={updatingStatus}
+        onClick={() => handleStatusChange("SHORTLISTED")}
+      >
+        Shortlist
+      </button>
+
+      <button
+        disabled={updatingStatus}
+        onClick={() => handleStatusChange("REJECTED")}
+        style={{ marginLeft: "10px" }}
+      >
+        Reject
+      </button>
+
+      <h3>Strengths</h3>
+      <ul>{strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+
+      <h3>Weaknesses</h3>
+      <ul>{weaknesses.map((s, i) => <li key={i}>{s}</li>)}</ul>
+
+      <h3>Recommendations</h3>
+      <ul>{recommendations.map((r, i) => <li key={i}>{r}</li>)}</ul>
+
+      {candidate.resumeText && (
+        <>
+          <h3>Resume Text</h3>
+          <pre>{candidate.resumeText}</pre>
+        </>
+      )}
     </div>
   );
 }
