@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../services/axiosClient";
 import {
   Users,
   Search,
@@ -19,15 +19,15 @@ const Candidates = () => {
   const [roleFilter, setRoleFilter] = useState("");
   const [roles, setRoles] = useState([]);
   const [view, setView] = useState("table");
-  const [stats, setStats] = useState({ total: 0, rolesCount: 0, shortlisted: 0 });
+  const [stats] = useState({ total: 0, rolesCount: 0, shortlisted: 0 });
 
   // SaaS Feature: Sync UI with Backend State
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const rolesRes = await axios.get("http://localhost:8080/api/resume/roles");
+        const rolesRes = await axiosClient.get("/roles");
         setRoles(rolesRes.data);
-        
+
         // Placeholder for a stats endpoint: GET /api/resume/candidates/stats
         // setStats({ 
         //   total: candidatesCount, 
@@ -85,7 +85,7 @@ const Candidates = () => {
 
         {/* Dynamic Filters */}
         <div className="flex flex-wrap items-center gap-3">
-          <select 
+          <select
             className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             onChange={(e) => setRoleFilter(e.target.value)}
           >
@@ -93,12 +93,12 @@ const Candidates = () => {
             {roles.map(r => <option key={r.id} value={r.id}>{r.roleName}</option>)}
           </select>
 
-          <FilterInput 
-            icon={<Filter size={14} />} 
-            placeholder="Min score" 
-            value={minScore} 
-            onChange={setMinScore} 
-            type="number" 
+          <FilterInput
+            icon={<Filter size={14} />}
+            placeholder="Min score"
+            value={minScore}
+            onChange={setMinScore}
+            type="number"
           />
 
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900 p-1">
@@ -172,11 +172,10 @@ const FilterInput = ({ icon, placeholder, value, onChange, type = "text" }) => (
 const ToggleButton = ({ active, children, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1.5 rounded-md transition duration-200 ${
-      active
-        ? "bg-white dark:bg-slate-800 text-indigo-600 shadow-sm"
-        : "text-slate-400 hover:text-slate-900 dark:hover:text-white"
-    }`}
+    className={`px-3 py-1.5 rounded-md transition duration-200 ${active
+      ? "bg-white dark:bg-slate-800 text-indigo-600 shadow-sm"
+      : "text-slate-400 hover:text-slate-900 dark:hover:text-white"
+      }`}
   >
     {children}
   </button>

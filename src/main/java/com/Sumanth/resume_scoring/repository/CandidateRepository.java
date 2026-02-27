@@ -1,6 +1,6 @@
 package com.Sumanth.resume_scoring.repository;
 
-import com.Sumanth.resume_scoring.model.Candidate;
+import com.Sumanth.resume_scoring.entity.Candidate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,19 +18,22 @@ public interface CandidateRepository extends JpaRepository<Candidate, Long> {
 
     boolean existsByEmail(String email);
 
-    // SaaS Feature: Paginated and Sorted view by Role (Crucial for large datasets)
     Page<Candidate> findByJobRoleId(Long roleId, Pageable pageable);
 
-    // SaaS Feature: Global Search (Search by name or email)
     @Query("SELECT c FROM Candidate c WHERE " +
-           "LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(c.email) LIKE LOWER(CONCAT('%', :query, '%'))")
-    Page<Candidate> searchCandidates(@Param("query") String query, Pageable pageable);
+           "(:roleId IS NULL OR c.jobRole.id = :roleId) AND " +
+           "(:status IS NULL OR c.status = :status) AND " +
+           "(:minScore IS NULL OR c.totalScore >= :minScore) AND " +
+           "(:keyword IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    List<Candidate> searchCandidates(
+            @Param("roleId") Long roleId,
+            @Param("status") String status,
+            @Param("minScore") Integer minScore,
+            @Param("keyword") String keyword);
 
-    // UI Analytics: Get counts for dashboard "Funnel" charts
     @Query("SELECT c.status, COUNT(c) FROM Candidate c GROUP BY c.status")
     List<Object[]> getStatusCounts();
 
-    // Advanced Ranking: Ties are broken by the most recently updated candidate
-    List<Candidate> findByJobRoleIdOrderByTotalScoreDescUpdatedAtDesc(Long roleId);
+    // Match this name exactly with the service call
+    List<Candidate> findByJobRoleIdOrderByTotalScoreDesc(Long roleId);
 }

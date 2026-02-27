@@ -1,4 +1,4 @@
-package com.Sumanth.resume_scoring.model;
+package com.Sumanth.resume_scoring.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

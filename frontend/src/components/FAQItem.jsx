@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 const FAQItem = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,10 +17,9 @@ const FAQItem = ({ question, answer }) => {
           <ChevronDown className="text-slate-400" size={20} />
         </div>
       </button>
-      
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-        isOpen ? "max-h-96 pb-6 opacity-100" : "max-h-0 opacity-0"
-      }`}>
+
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-96 pb-6 opacity-100" : "max-h-0 opacity-0"
+        }`}>
         <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
           {answer}
         </p>

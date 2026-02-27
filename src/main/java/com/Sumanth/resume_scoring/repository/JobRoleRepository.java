@@ -1,6 +1,6 @@
 package com.Sumanth.resume_scoring.repository;
 
-import com.Sumanth.resume_scoring.model.JobRole;
+import com.Sumanth.resume_scoring.entity.JobRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

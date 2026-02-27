@@ -1,4 +1,4 @@
-package com.Sumanth.resume_scoring.model;
+package com.Sumanth.resume_scoring.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "job_roles")
+@Table(name = "job_roles", indexes = {
+    @Index(name = "idx_role_name", columnList = "role_name"),
+    @Index(name = "idx_is_active", columnList = "is_active")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,14 +43,26 @@ public class JobRole {
     @Column(name = "application_count")
     private Integer applicationCount = 0;
 
+    @Column(name = "min_score_threshold")
+    private Integer minScoreThreshold;
+
     @OneToMany(mappedBy = "jobRole", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RoleSkill> requiredSkills;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

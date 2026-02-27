@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
 import {
-  FileText,
   BarChart3,
   Search,
   Cpu,
@@ -11,11 +11,33 @@ import {
   Users
 } from "lucide-react";
 import UploadForm from "../components/UploadForm";
-import axios from "axios";
 
 const Home = () => {
   const [uploadedCount, setUploadedCount] = useState(0);
-  const [stats, setStats] = useState({ totalCandidates: 0, activeRoles: 0 });
+  const [stats] = useState({ totalCandidates: 0, activeRoles: 0 });
+
+  const heroRef = useRef(null);
+  const metricsRef = useRef(null);
+  const featuresRef = useRef(null);
+
+  useEffect(() => {
+    // GSAP Hero Animation
+    if (heroRef.current) {
+      gsap.fromTo(
+        heroRef.current.children,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power3.out" }
+      );
+    }
+    // GSAP Metrics Animation
+    if (metricsRef.current) {
+      gsap.fromTo(
+        metricsRef.current.children,
+        { opacity: 0, scale: 0.9 },
+        { opacity: 1, scale: 1, duration: 0.6, stagger: 0.1, delay: 0.4, ease: "back.out(1.7)" }
+      );
+    }
+  }, []);
 
   // SaaS Feature: Sync with Backend Stats on load
   useEffect(() => {
@@ -35,7 +57,7 @@ const Home = () => {
     <main className="bg-white dark:bg-slate-950">
 
       {/* ===== HERO ===== */}
-      <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
+      <section ref={heroRef} className="max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
         <span className="inline-flex items-center rounded-full bg-indigo-500/10 text-indigo-600 px-4 py-1.5 text-sm font-semibold mb-6">
           v2.0 Advanced Ranking Active
         </span>
@@ -46,7 +68,7 @@ const Home = () => {
         </h1>
 
         <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
-          Evaluated with your custom <span className="font-bold">Weighted Skill Logic</span>. 
+          Evaluated with your custom <span className="font-bold">Weighted Skill Logic</span>.
           Analyze candidates against role-specific mandatory requirements in seconds.
         </p>
 
@@ -69,7 +91,7 @@ const Home = () => {
       </section>
 
       {/* ===== LIVE BACKEND METRICS ===== */}
-      <section className="max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 sm:grid-cols-4 gap-6">
+      <section ref={metricsRef} className="max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 sm:grid-cols-4 gap-6">
         <Metric
           icon={<Users size={20} />}
           label="Total Candidates"
@@ -78,7 +100,7 @@ const Home = () => {
         <Metric
           icon={<TrendingUp size={20} />}
           label="Active Job Roles"
-          value={stats.activeRoles || 5} 
+          value={stats.activeRoles || 5}
         />
         <Metric
           icon={<Cpu size={20} />}
@@ -118,7 +140,7 @@ const Home = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div ref={featuresRef} className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <Feature
             icon={<BarChart3 size={24} />}
             title="Weighted Scoring"

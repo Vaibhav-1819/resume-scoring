@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { uploadResume, getAllRoles } from "../services/api";
-import { Upload, CheckCircle, AlertCircle, Loader2, Award, TrendingUp, Cpu } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Loader2, TrendingUp, Cpu } from "lucide-react";
 
 export default function UploadForm({ onUploadSuccess }) {
   const [file, setFile] = useState(null);
@@ -82,7 +82,9 @@ export default function UploadForm({ onUploadSuccess }) {
     SENIOR: "bg-rose-500/10 text-rose-600"
   };
 
-  const skills = result?.feedback ? parseSkills(result.feedback) : null;
+  const skills = result?.feedback
+    ? parseSkills(result.feedback)
+    : { strengths: [], weaknesses: [], recommendations: [] };
 
   /* ================= UI ================= */
   return (
@@ -120,8 +122,8 @@ export default function UploadForm({ onUploadSuccess }) {
                   className="hidden"
                   id="resume-file"
                 />
-                <label 
-                  htmlFor="resume-file" 
+                <label
+                  htmlFor="resume-file"
                   className="flex items-center gap-3 w-full p-3 rounded-xl border border-dashed dark:border-white/10 dark:bg-slate-800 cursor-pointer hover:border-indigo-500 transition-colors"
                 >
                   <Upload size={18} className="text-slate-400" />
@@ -137,7 +139,7 @@ export default function UploadForm({ onUploadSuccess }) {
             <Input label="Phone" value={phone} onChange={setPhone} loading={loading} required={false} />
           </div>
 
-          <button 
+          <button
             className="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 disabled:bg-slate-700 flex justify-center items-center gap-2"
             disabled={loading}
           >
@@ -182,7 +184,7 @@ export default function UploadForm({ onUploadSuccess }) {
             <SkillCard title="AI Strategy" items={skills.recommendations} variant="info" />
           </div>
 
-          <button 
+          <button
             onClick={() => setResult(null)}
             className="w-full py-3 text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
           >

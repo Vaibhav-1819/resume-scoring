@@ -1,4 +1,4 @@
-package com.Sumanth.resume_scoring.model;
+package com.Sumanth.resume_scoring.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,9 @@ import java.util.List;
 @Entity
 @Table(name = "candidates", indexes = {
     @Index(name = "idx_email", columnList = "email"),
-    @Index(name = "idx_status", columnList = "status")
+    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_role_id", columnList = "role_id"),
+    @Index(name = "idx_total_score", columnList = "total_score")
 })
 @Data
 @NoArgsConstructor
@@ -42,6 +44,9 @@ public class Candidate {
 
     @Column(name = "file_name")
     private String fileName;
+
+    @Column(name = "file_path")
+    private String filePath;
 
     @ManyToOne
     @JoinColumn(name = "role_id")

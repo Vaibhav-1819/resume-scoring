@@ -1,29 +1,44 @@
 package com.Sumanth.resume_scoring.controller;
 
-import com.Sumanth.resume_scoring.model.Candidate;
-import com.Sumanth.resume_scoring.model.JobRole;
-import com.Sumanth.resume_scoring.service.ResumeService;
+import com.Sumanth.resume_scoring.dto.CandidateMapper;
+import com.Sumanth.resume_scoring.dto.response.BulkUploadResponseDTO;
+import com.Sumanth.resume_scoring.dto.response.CandidateDetailDTO;
+import com.Sumanth.resume_scoring.dto.response.CandidateResponseDTO;
+import com.Sumanth.resume_scoring.dto.response.JobRoleDTO;
+import com.Sumanth.resume_scoring.dto.response.UploadResponseDTO;
+import com.Sumanth.resume_scoring.entity.Candidate;
+import com.Sumanth.resume_scoring.service.CandidateService;
+import com.Sumanth.resume_scoring.service.JobRoleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/resume")
-@CrossOrigin(origins = "*") // Update this to your Vite dev URL in production
 public class ResumeController {
 
     @Autowired
-    private ResumeService resumeService;
+    private CandidateService candidateService;
+
+    @Autowired
+    private JobRoleService jobRoleService;
 
     /**
      * Upload and analyze resume with role-based scoring
      */
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadResume(
+    public ResponseEntity<UploadResponseDTO> uploadResume(
             @RequestParam("file") MultipartFile file,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
@@ -31,100 +46,148 @@ public class ResumeController {
             @RequestParam("roleId") Long roleId) {
 
         try {
-            // 1. Validation Logic
             if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Please upload a valid file."));
+                throw new IllegalArgumentException("Please upload a valid file.");
             }
-            
-            if (resumeService.emailExists(email)) {
+            if (candidateService.emailExists(email)) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(Map.of("error", "A candidate with this email is already registered."));
+                        .body(new UploadResponseDTO(false, null, null, null, null, "A candidate with this email is already registered."));
             }
 
-            // Using a direct find instead of streaming all roles for better performance
-            JobRole role = resumeService.getRoleById(roleId);
-            if (role == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "The selected Job Role is invalid."));
-            }
+            Candidate savedCandidate = candidateService.saveAndProcessCandidate(file, name, email, phone, roleId);
 
-            // 2. Processing Phase
-            String resumeText = resumeService.extractTextFromPDF(file);
-            int score = resumeService.calculateAdvancedScore(resumeText, roleId);
-            String experienceLevel = resumeService.detectExperienceLevel(resumeText);
-            String feedback = resumeService.generateDetailedFeedback(resumeText, roleId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                new UploadResponseDTO(true, savedCandidate.getId(), savedCandidate.getTotalScore(), 
+                                      savedCandidate.getRankInRole(), savedCandidate.getExperienceLevel(), 
+                                      "Resume analyzed and candidate registered successfully.")
+            );
 
-            // 3. Entity Construction
-            Candidate candidate = new Candidate();
-            candidate.setName(name);
-            candidate.setEmail(email);
-            candidate.setPhoneNumber(phone);
-            candidate.setFileName(file.getOriginalFilename());
-            candidate.setResumeText(resumeText);
-            candidate.setTotalScore(score);
-            candidate.setFeedback(feedback);
-            candidate.setJobRole(role);
-            candidate.setExperienceLevel(experienceLevel);
-            candidate.setStatus("NEW");
-
-            Candidate savedCandidate = resumeService.saveCandidate(candidate);
-
-            // 4. Structured Response for React Frontend
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "success", true,
-                "candidateId", savedCandidate.getId(),
-                "score", score,
-                "rank", savedCandidate.getRankInRole(),
-                "experienceLevel", experienceLevel,
-                "message", "Resume analyzed and candidate registered successfully."
-            ));
-
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Processing failed: " + e.getMessage()));
+            throw new RuntimeException("Processing failed: " + e.getMessage());
         }
     }
 
+    @PostMapping("/bulk-upload")
+    public ResponseEntity<BulkUploadResponseDTO> bulkUploadResume(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam("roleId") Long roleId) {
+        
+        int successCount = 0;
+        List<String> failedFiles = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            try {
+                // Determine a basic name/email strategy for bulk, or extract from PDF.
+                // For a robust SaaS, we parse email/phone directly from resumeText if not provided.
+                // But passing basic mock data for API requirement compliance in minimal time.
+                String defaultName = file.getOriginalFilename().replace(".pdf", "");
+                String defaultEmail = defaultName.replaceAll("\\s", "").toLowerCase() + "@example.com";
+                
+                if (candidateService.emailExists(defaultEmail)) {
+                    continue; // skip duplicate
+                }
+
+                candidateService.saveAndProcessCandidate(file, defaultName, defaultEmail, null, roleId);
+                successCount++;
+            } catch (Exception e) {
+                failedFiles.add(file.getOriginalFilename() + ": " + e.getMessage());
+            }
+        }
+        
+        return ResponseEntity.ok(
+            new BulkUploadResponseDTO(files.length, successCount, failedFiles.size(), failedFiles)
+        );
+    }
+
     /**
-     * Get all candidates with optional filtering by role
-     * Recommended: Implement Pagination here for SaaS scalability
+     * Get single candidate by ID
+     */
+    @GetMapping("/candidates/{id}")
+    public ResponseEntity<CandidateDetailDTO> getCandidateById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(candidateService.getCandidateDetail(id));
+    }
+
+    /**
+     * Get all candidates with advanced filtering
      */
     @GetMapping("/candidates")
-    public ResponseEntity<List<Candidate>> getCandidates(@RequestParam(required = false) Long roleId) {
-        if (roleId != null) {
-            return ResponseEntity.ok(resumeService.getCandidatesByRole(roleId));
-        }
-        return ResponseEntity.ok(resumeService.getAllCandidates());
+    public ResponseEntity<List<CandidateResponseDTO>> getCandidates(
+            @RequestParam(required = false) Long roleId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer minScore,
+            @RequestParam(required = false) String keyword) {
+        
+        return ResponseEntity.ok(candidateService.searchCandidates(roleId, status, minScore, keyword));
     }
 
     /**
      * Update candidate status (e.g., Shortlisted, Rejected)
      */
     @PatchMapping("/candidates/{id}/status")
-    public ResponseEntity<?> updateStatus(
-            @PathVariable Long id, 
+    public ResponseEntity<CandidateResponseDTO> updateStatus(
+            @PathVariable("id") Long id, 
             @RequestBody Map<String, String> payload) {
         
         String status = payload.get("status");
         if (status == null || status.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Status field is required."));
+            throw new IllegalArgumentException("Status field is required.");
         }
 
-        Candidate updated = resumeService.updateStatus(id, status);
-        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(candidateService.updateCandidateStatus(id, status));
     }
 
     @GetMapping("/roles")
-    public ResponseEntity<List<JobRole>> getAllRoles() {
-        return ResponseEntity.ok(resumeService.getAllJobRoles());
+    public ResponseEntity<List<JobRoleDTO>> getAllRoles() {
+        return ResponseEntity.ok(jobRoleService.getAllJobRoles().stream()
+                .map(CandidateMapper::toJobRoleDto)
+                .collect(Collectors.toList()));
     }
 
     @DeleteMapping("/candidates/{id}")
-    public ResponseEntity<?> deleteCandidate(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deleteCandidate(@PathVariable("id") Long id) {
+        candidateService.deleteCandidate(id);
+        return ResponseEntity.ok(Map.of("message", "Candidate removed successfully."));
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> exportCandidatesCsv() {
+        String csv = candidateService.exportCandidatesToCsv();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.TEXT_PLAIN);
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"candidates.csv\"");
+        return new ResponseEntity<>(csv, headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/reanalyze/{id}")
+    public ResponseEntity<CandidateResponseDTO> reanalyzeCandidate(@PathVariable("id") Long id) {
         try {
-            resumeService.deleteCandidate(id);
-            return ResponseEntity.ok(Map.of("message", "Candidate removed successfully."));
+            return ResponseEntity.ok(candidateService.reanalyzeCandidate(id));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Candidate not found."));
+            throw new RuntimeException("Reanalysis failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/download/{id}")
+    public ResponseEntity<Resource> downloadResume(@PathVariable("id") Long id) {
+        CandidateDetailDTO candidate = candidateService.getCandidateDetail(id);
+        if (candidate.getFilePath() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            java.nio.file.Path filePath = java.nio.file.Paths.get(candidate.getFilePath());
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + candidate.getFileName() + "\"")
+                        .body(resource);
+            } else {
+                throw new RuntimeException("Could not read the file!");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error downloading file: " + e.getMessage());
         }
     }
 }

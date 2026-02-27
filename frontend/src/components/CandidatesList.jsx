@@ -1,18 +1,16 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
 import {
   Trash2,
   ExternalLink,
-  Mail,
   Briefcase,
-  Calendar,
-  AlertCircle,
-  TrendingUp
+  AlertCircle
 } from "lucide-react";
-import { 
-  getAllCandidates, 
-  deleteCandidate, 
-  searchCandidates 
+import {
+  getAllCandidates,
+  deleteCandidate,
+  searchCandidates
 } from "../services/api";
 
 export default function CandidatesList({
@@ -24,21 +22,21 @@ export default function CandidatesList({
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
+  const [page] = useState(0);
 
   const fetchTalentPool = useCallback(async () => {
     try {
       setLoading(true);
       let data;
-      
+
       if (search.trim()) {
         data = await searchCandidates(search, page);
       } else {
         data = await getAllCandidates(page, roleId);
       }
-      
+
       // Handle Spring Boot Page object structure
-      setCandidates(data.content || data); 
+      setCandidates(data.content || data);
       setError(null);
     } catch (err) {
       setError("Unable to sync with talent database.");
@@ -75,6 +73,18 @@ export default function CandidatesList({
 /* ================= VIEWS ================= */
 
 function TableView({ candidates, onDelete }) {
+  const tableRef = useRef(null);
+
+  useEffect(() => {
+    if (tableRef.current && candidates.length > 0) {
+      gsap.fromTo(
+        tableRef.current.children,
+        { opacity: 0, x: -10 },
+        { opacity: 1, x: 0, duration: 0.4, stagger: 0.05, ease: "power2.out" }
+      );
+    }
+  }, [candidates]);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
@@ -87,7 +97,7 @@ function TableView({ candidates, onDelete }) {
             <th className="px-6 py-4 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+        <tbody className="divide-y divide-slate-100 dark:divide-white/5" ref={tableRef}>
           {candidates.map((c) => (
             <tr key={c.id} className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5 transition-colors">
               <td className="px-6 py-4">
@@ -132,8 +142,20 @@ function TableView({ candidates, onDelete }) {
 }
 
 function GridView({ candidates, onDelete }) {
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    if (gridRef.current && candidates.length > 0) {
+      gsap.fromTo(
+        gridRef.current.children,
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.05, ease: "power2.out" }
+      );
+    }
+  }, [candidates]);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+    <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
       {candidates.map((c) => (
         <div key={c.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-6 hover:shadow-lg transition-all">
           <div className="flex justify-between items-start mb-4">

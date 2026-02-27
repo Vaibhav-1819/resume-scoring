@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import {
   Mail,
   Briefcase,
@@ -27,6 +28,18 @@ export default function CandidateDetail() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!loading && candidate && containerRef.current) {
+      gsap.fromTo(
+        containerRef.current.children,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: "power2.out" }
+      );
+    }
+  }, [loading, candidate]);
 
   /* ================= LOAD ================= */
   const loadCandidate = useCallback(async () => {
@@ -92,8 +105,8 @@ export default function CandidateDetail() {
   const score = candidate.totalScore || 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
-      
+    <div ref={containerRef} className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+
       {/* ===== NAVIGATION & ACTION BAR ===== */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <button
@@ -111,9 +124,9 @@ export default function CandidateDetail() {
           >
             <Trash2 size={18} />
           </button>
-          
+
           <div className="h-8 w-[1px] bg-slate-200 dark:bg-white/10 mx-2" />
-          
+
           <StatusButton
             active={candidate.status === "SHORTLISTED"}
             loading={updating}
@@ -136,7 +149,7 @@ export default function CandidateDetail() {
       {/* ===== HEADER CARD ===== */}
       <header className="glass-panel rounded-3xl p-8 flex flex-col lg:flex-row gap-10 items-center">
         <div className="relative group">
-           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-4xl font-black shadow-xl shadow-indigo-500/20">
+          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-4xl font-black shadow-xl shadow-indigo-500/20">
             {initials}
           </div>
           <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-900 p-1.5 rounded-lg border dark:border-white/10 shadow-lg">
@@ -171,11 +184,11 @@ export default function CandidateDetail() {
           </div>
 
           <div className="text-center">
-             <div className="w-20 h-20 rounded-full border-4 border-indigo-500/20 flex flex-col items-center justify-center bg-indigo-500/5">
-                <TrendingUp size={20} className="text-indigo-600 mb-1" />
-                <span className="text-xl font-black text-indigo-600">#{candidate.rankInRole}</span>
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-tighter text-slate-400 mt-2">Current Rank</p>
+            <div className="w-20 h-20 rounded-full border-4 border-indigo-500/20 flex flex-col items-center justify-center bg-indigo-500/5">
+              <TrendingUp size={20} className="text-indigo-600 mb-1" />
+              <span className="text-xl font-black text-indigo-600">#{candidate.rankInRole}</span>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-tighter text-slate-400 mt-2">Current Rank</p>
           </div>
         </div>
       </header>

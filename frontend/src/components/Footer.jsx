@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -56,7 +56,7 @@ const Footer = () => {
             </div>
 
             <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 mb-6">
-              Empowering recruiting teams with <strong>Weighted AI Scoring</strong> and automated 
+              Empowering recruiting teams with <strong>Weighted AI Scoring</strong> and automated
               candidate ranking based on custom skill-fit logic.
             </p>
 
@@ -119,17 +119,14 @@ const Footer = () => {
             © {currentYear} ResuMetric AI. Engineered for better hiring.
           </p>
 
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border ${
-            dbStats.apiStatus === "operational" 
-            ? "bg-emerald-500/10 border-emerald-500/20" 
-            : "bg-amber-500/10 border-amber-500/20"
-          }`}>
-            <span className={`w-2 h-2 rounded-full animate-pulse ${
-              dbStats.apiStatus === "operational" ? "bg-emerald-500" : "bg-amber-500"
-            }`} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${
-              dbStats.apiStatus === "operational" ? "text-emerald-600" : "text-amber-600"
+          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border ${dbStats.apiStatus === "operational"
+              ? "bg-emerald-500/10 border-emerald-500/20"
+              : "bg-amber-500/10 border-amber-500/20"
             }`}>
+            <span className={`w-2 h-2 rounded-full animate-pulse ${dbStats.apiStatus === "operational" ? "bg-emerald-500" : "bg-amber-500"
+              }`} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${dbStats.apiStatus === "operational" ? "text-emerald-600" : "text-amber-600"
+              }`}>
               {dbStats.apiStatus === "operational" ? "All Systems Operational" : "Service Interruption"}
             </span>
           </div>
